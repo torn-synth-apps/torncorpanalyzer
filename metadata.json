@@ -1,0 +1,5 @@
+{
+  "name": "Torn City Company Analyzer",
+  "description": "A comprehensive tool to browse, filter, and analyze Torn City companies by type using the official API. Features intelligent caching and detailed financial metrics.",
+  "requestFramePermissions": []
+}
