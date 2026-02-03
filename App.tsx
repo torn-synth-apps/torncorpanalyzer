@@ -1,172 +1,43 @@
-import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
-import { Company, FilterState, SortDirection, SortField } from './types';
-import { COMPANY_TYPES } from './constants';
-import { fetchCompanies } from './services/tornApi';
-import { CompanyRow } from './components/CompanyCard';
-import { 
-  Search, 
-  Filter, 
-  ArrowUpDown, 
-  ArrowUp, 
-  ArrowDown, 
-  Loader2, 
+import React, { useState, useMemo, useEffect, useRef, useCallback } from "react";
+import { Company, FilterState, SortDirection, SortField } from "./types";
+import { COMPANY_TYPES } from "./constants";
+import { fetchCompanies } from "./services/tornApi";
+import { CompanyRow } from "./components/CompanyCard";
+import FilterBlock from "./components/filters/FilterBlock";
+import StatCard from "./components/StatCard";
+import TableHeader from "./components/TableHeader";
+import {
   AlertCircle,
+  ArrowDown,
+  ArrowUp,
+  ArrowUpDown,
   BarChart3,
-  Calendar,
-  Users,
-  DollarSign,
-  ChevronUp,
-  ChevronDown,
   Bookmark,
-  Key,
-  Sun,
-  Moon,
-  RotateCcw,
-  RefreshCw,
+  Calendar,
+  ChevronDown,
+  ChevronUp,
+  DollarSign,
   Eye,
+  Filter,
+  Key,
+  Loader2,
+  Moon,
+  RefreshCw,
+  RotateCcw,
+  Search,
   Settings2,
+  Sun,
+  Users,
   X,
-  ChevronRight
-} from 'lucide-react';
+} from "lucide-react";
 
 interface ViewStats {
   todayViews: number;
   totalViews: number;
 }
 
-// Dual Range Slider Component
-const DualRangeSlider = ({ 
-  min, 
-  max, 
-  minVal, 
-  maxVal, 
-  onChangeMin, 
-  onChangeMax, 
-  step = 1 
-}: { 
-  min: number, max: number, minVal: number, maxVal: number, onChangeMin: (v: number) => void, onChangeMax: (v: number) => void, step?: number 
-}) => {
-  const minPos = Math.min(((minVal - min) / (max - min)) * 100, 100);
-  const maxPos = Math.min(((maxVal - min) / (max - min)) * 100, 100);
-
-  return (
-    <div className="relative w-full h-8 flex items-center">
-      <input
-        type="range"
-        min={min}
-        max={max}
-        step={step}
-        value={minVal}
-        onChange={(e) => {
-          const value = Math.min(Number(e.target.value), maxVal - step);
-          onChangeMin(value);
-        }}
-        className="absolute w-full h-full pointer-events-none appearance-none bg-transparent z-20 [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-primary [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:pointer-events-auto [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:bg-primary"
-      />
-      <input
-        type="range"
-        min={min}
-        max={max}
-        step={step}
-        value={maxVal}
-        onChange={(e) => {
-          const value = Math.max(Number(e.target.value), minVal + step);
-          onChangeMax(value);
-        }}
-        className="absolute w-full h-full pointer-events-none appearance-none bg-transparent z-20 [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-primary [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:pointer-events-auto [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:bg-primary"
-      />
-      <div className="absolute w-full h-1 bg-muted rounded z-10">
-        <div 
-          className="absolute h-full bg-primary/40 rounded" 
-          style={{ left: `${minPos}%`, right: `${100 - maxPos}%` }}
-        />
-      </div>
-    </div>
-  );
-};
-
-// Filter Block Component
-const FilterBlock = ({ 
-  label, 
-  minLimit, 
-  maxLimit, 
-  currentMin, 
-  currentMax, 
-  onChangeMin, 
-  onChangeMax, 
-  step = 1 
-}: { 
-  label: string, 
-  minLimit: number, 
-  maxLimit: number, 
-  currentMin: number, 
-  currentMax: number | null, 
-  onChangeMin: (v: number) => void, 
-  onChangeMax: (v: number | null) => void,
-  step?: number
-}) => {
-  const safeMax = currentMax === null ? maxLimit : currentMax;
-
-  return (
-    <div className="flex flex-col gap-1 p-3 bg-muted/30 border border-border">
-      <label className="text-xs font-semibold text-muted-foreground">{label}</label>
-      <div className="flex gap-2 items-center mb-1">
-         <input 
-            type="number" 
-            className="w-full border border-border bg-background p-1 text-xs rounded text-foreground focus:outline-none focus:ring-1 focus:ring-primary" 
-            placeholder="Min"
-            min={minLimit}
-            max={safeMax}
-            value={currentMin} 
-            onChange={e => onChangeMin(Number(e.target.value))} 
-         />
-         <span className="text-muted-foreground text-xs">-</span>
-         <input 
-            type="number" 
-            className="w-full border border-border bg-background p-1 text-xs rounded text-foreground focus:outline-none focus:ring-1 focus:ring-primary" 
-            placeholder="Max"
-            min={currentMin}
-            max={maxLimit}
-            value={currentMax === null ? maxLimit : currentMax} 
-            onChange={e => onChangeMax(Number(e.target.value))} 
-         />
-      </div>
-      <DualRangeSlider 
-        min={minLimit} 
-        max={maxLimit} 
-        minVal={currentMin} 
-        maxVal={safeMax} 
-        step={step}
-        onChangeMin={onChangeMin}
-        onChangeMax={(val) => onChangeMax(val === maxLimit ? null : val)}
-      />
-    </div>
-  );
-};
-
-interface StatCardProps {
-  title: string;
-  value: string;
-  subtext: string;
-  icon: any;
-  colorClass: string;
-}
-
-const StatCard: React.FC<StatCardProps> = ({ title, value, subtext, icon: Icon, colorClass }) => (
-  <div className="bg-card p-1.5 md:p-2 border border-border shadow-sm flex items-center md:items-start gap-1.5 md:gap-2 min-w-[120px] md:min-w-[150px] flex-1">
-    <div className={`p-1 md:p-1.5 rounded-full ${colorClass} bg-opacity-10 shrink-0`}>
-      <Icon className={`w-2.5 h-2.5 md:w-3 md:h-3 ${colorClass}`} />
-    </div>
-    <div className="min-w-0">
-      <p className="text-[8px] md:text-[9px] text-muted-foreground font-bold uppercase tracking-widest truncate">{title}</p>
-      <p className="text-[10px] md:text-xs font-black text-foreground truncate">{value}</p>
-      <p className="text-[8px] md:text-[9px] text-muted-foreground truncate opacity-70 hidden sm:block" title={subtext}>{subtext}</p>
-    </div>
-  </div>
-);
-
 const DEFAULT_FILTERS: FilterState = {
-  name: '',
+  name: "",
   minStars: 0,
   maxStars: 10,
   minDailyIncome: 0,
@@ -179,21 +50,22 @@ const DEFAULT_FILTERS: FilterState = {
   maxAge: null,
 };
 
-const VIEW_TRACKER_URL = "https://script.google.com/macros/s/AKfycbwMbi5ZHW7XDhlrrNmVOVTVljDiYtpEUujdtJaUdVvAS4wCFvLEvRHtf0ic0zQwHdKs9Q/exec";
+const VIEW_TRACKER_URL =
+  "https://script.google.com/macros/s/AKfycbwMbi5ZHW7XDhlrrNmVOVTVljDiYtpEUujdtJaUdVvAS4wCFvLEvRHtf0ic0zQwHdKs9Q/exec";
 
 const App: React.FC = () => {
   // --- State ---
   const [isDark, setIsDark] = useState<boolean>(() => {
     if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('torn_theme');
-      if (saved) return saved === 'dark';
-      return window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const saved = localStorage.getItem("torn_theme");
+      if (saved) return saved === "dark";
+      return window.matchMedia("(prefers-color-scheme: dark)").matches;
     }
     return false;
   });
 
   const [selectedType, setSelectedType] = useState<number>(() => {
-    const saved = localStorage.getItem('torn_selected_type');
+    const saved = localStorage.getItem("torn_selected_type");
     return saved ? parseInt(saved, 10) : 10;
   });
 
@@ -202,8 +74,11 @@ const App: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [markedIds, setMarkedIds] = useState<Set<number>>(new Set());
   const [showMarked, setShowMarked] = useState(true);
-  const [apiKey, setApiKey] = useState(() => localStorage.getItem('torn_api_key') || '');
+  const [apiKey, setApiKey] = useState(
+    () => localStorage.getItem("torn_api_key") || "",
+  );
   const [viewStats, setViewStats] = useState<ViewStats | null>(null);
+  const hasTrackedViewRef = useRef(false);
 
   // Scroll visibility state for mobile
   const [hideInputs, setHideInputs] = useState(false);
@@ -212,7 +87,7 @@ const App: React.FC = () => {
 
   // Filters
   const [filters, setFilters] = useState<FilterState>(() => {
-    const saved = localStorage.getItem('torn_filters');
+    const saved = localStorage.getItem("torn_filters");
     if (saved) {
       try {
         return JSON.parse(saved);
@@ -228,10 +103,15 @@ const App: React.FC = () => {
 
   // Sorting
   const [sortField, setSortField] = useState<SortField>(() => {
-    return (localStorage.getItem('torn_sort_field') as SortField) || 'weekly_income';
+    return (
+      (localStorage.getItem("torn_sort_field") as SortField) ||
+      "weekly_income"
+    );
   });
   const [sortDirection, setSortDirection] = useState<SortDirection>(() => {
-    return (localStorage.getItem('torn_sort_direction') as SortDirection) || 'desc';
+    return (
+      (localStorage.getItem("torn_sort_direction") as SortDirection) || "desc"
+    );
   });
 
   // --- Refs ---
@@ -275,52 +155,53 @@ const App: React.FC = () => {
   // --- Theme Effect ---
   useEffect(() => {
     if (isDark) {
-      document.documentElement.classList.add('dark');
+      document.documentElement.classList.add("dark");
     } else {
-      document.documentElement.classList.remove('dark');
+      document.documentElement.classList.remove("dark");
     }
-    localStorage.setItem('torn_theme', isDark ? 'dark' : 'light');
+    localStorage.setItem("torn_theme", isDark ? "dark" : "light");
   }, [isDark]);
 
   // --- Persistence Effects ---
   useEffect(() => {
-    localStorage.setItem('torn_filters', JSON.stringify(filters));
-  }, [filters]);
-
-  useEffect(() => {
-    localStorage.setItem('torn_sort_field', sortField);
-  }, [sortField]);
-
-  useEffect(() => {
-    localStorage.setItem('torn_sort_direction', sortDirection);
-  }, [sortDirection]);
-
-  useEffect(() => {
-    localStorage.setItem('torn_selected_type', selectedType.toString());
-  }, [selectedType]);
+    localStorage.setItem("torn_filters", JSON.stringify(filters));
+    localStorage.setItem("torn_sort_field", sortField);
+    localStorage.setItem("torn_sort_direction", sortDirection);
+    localStorage.setItem("torn_selected_type", selectedType.toString());
+  }, [filters, sortField, sortDirection, selectedType]);
 
   // --- Initial Load Effects ---
   useEffect(() => {
-    const savedMarks = localStorage.getItem('torn_marked_companies');
+    const savedMarks = localStorage.getItem("torn_marked_companies");
     if (savedMarks) {
       try {
         setMarkedIds(new Set(JSON.parse(savedMarks)));
-      } catch (e) { console.error("Failed to load marks", e); }
+      } catch (e) {
+        console.error("Failed to load marks", e);
+      }
     }
+
+    if (hasTrackedViewRef.current) return;
+    hasTrackedViewRef.current = true;
 
     const fetchViewStats = async () => {
       try {
         const res = await fetch(VIEW_TRACKER_URL, {
-          method: 'GET',
-          redirect: 'follow',
-          mode: 'cors'
+          method: "GET",
+          redirect: "follow",
+          mode: "cors",
         });
         if (!res.ok) throw new Error(`Fetch failed with status ${res.status}`);
         const data = await res.json();
         if (data && data.success) {
-          setViewStats({ todayViews: data.todayViews, totalViews: data.totalViews });
+          setViewStats({
+            todayViews: data.todayViews,
+            totalViews: data.totalViews,
+          });
         }
-      } catch (e) { console.error("Failed to fetch view stats", e); }
+      } catch (e) {
+        console.error("Failed to fetch view stats", e);
+      }
     };
     fetchViewStats();
   }, []);
@@ -330,13 +211,16 @@ const App: React.FC = () => {
     if (newSet.has(id)) newSet.delete(id);
     else newSet.add(id);
     setMarkedIds(newSet);
-    localStorage.setItem('torn_marked_companies', JSON.stringify(Array.from(newSet)));
+    localStorage.setItem(
+      "torn_marked_companies",
+      JSON.stringify(Array.from(newSet)),
+    );
   };
 
   const handleApiKeyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     setApiKey(val);
-    localStorage.setItem('torn_api_key', val);
+    localStorage.setItem("torn_api_key", val);
   };
 
   const resetFilters = () => {
@@ -352,30 +236,38 @@ const App: React.FC = () => {
     });
 
     const rankMap = new Map<number, number>();
-    sortedForRank.forEach((c, index) => { rankMap.set(c.ID, index + 1); });
+    sortedForRank.forEach((c, index) => {
+      rankMap.set(c.ID, index + 1);
+    });
 
     const companiesByStars = new Map<number, Company[]>();
-    rawData.forEach(c => {
-      const s = Math.round(c.rating); 
+    rawData.forEach((c) => {
+      const s = Math.round(c.rating);
       if (!companiesByStars.has(s)) companiesByStars.set(s, []);
       companiesByStars.get(s)?.push(c);
     });
 
-    const ageRankMap = new Map<number, {rank: number, total: number}>();
-    const revRankMap = new Map<number, {rank: number, total: number}>();
-    const custRankMap = new Map<number, {rank: number, total: number}>();
+    const ageRankMap = new Map<number, { rank: number; total: number }>();
+    const revRankMap = new Map<number, { rank: number; total: number }>();
+    const custRankMap = new Map<number, { rank: number; total: number }>();
 
     companiesByStars.forEach((group, star) => {
       const total = group.length;
-      group.sort((a, b) => a.days_old - b.days_old).forEach((c, i) => {
-        ageRankMap.set(c.ID, { rank: i + 1, total });
-      });
-      group.sort((a, b) => b.weekly_income - a.weekly_income).forEach((c, i) => {
-        revRankMap.set(c.ID, { rank: i + 1, total });
-      });
-      group.sort((a, b) => b.weekly_customers - a.weekly_customers).forEach((c, i) => {
-        custRankMap.set(c.ID, { rank: i + 1, total });
-      });
+      group
+        .sort((a, b) => a.days_old - b.days_old)
+        .forEach((c, i) => {
+          ageRankMap.set(c.ID, { rank: i + 1, total });
+        });
+      group
+        .sort((a, b) => b.weekly_income - a.weekly_income)
+        .forEach((c, i) => {
+          revRankMap.set(c.ID, { rank: i + 1, total });
+        });
+      group
+        .sort((a, b) => b.weekly_customers - a.weekly_customers)
+        .forEach((c, i) => {
+          custRankMap.set(c.ID, { rank: i + 1, total });
+        });
     });
 
     return rawData.map(c => {
@@ -393,13 +285,20 @@ const App: React.FC = () => {
           rank_revenue: revRankMap.get(c.ID)?.rank || 0,
           rank_customers: custRankMap.get(c.ID)?.rank || 0,
           total_in_group: ageRankMap.get(c.ID)?.total || 0,
-        }
+        },
       };
     });
   };
 
   const getLimitValues = useMemo(() => {
-    if (companies.length === 0) return { maxIncomeD: 1000000, maxIncomeW: 7000000, maxCust: 1000, maxAge: 5000 };
+    if (companies.length === 0) {
+      return {
+        maxIncomeD: 1000000,
+        maxIncomeW: 7000000,
+        maxCust: 1000,
+        maxAge: 5000,
+      };
+    }
     return {
       maxIncomeD: Math.max(...companies.map(c => c.daily_income), 1000),
       maxIncomeW: Math.max(...companies.map(c => c.weekly_income), 10000),
@@ -436,10 +335,10 @@ const App: React.FC = () => {
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
-      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+      setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
     } else {
       setSortField(field);
-      setSortDirection('desc');
+      setSortDirection("desc");
     }
   };
 
@@ -448,22 +347,46 @@ const App: React.FC = () => {
     if (filters.minStars > 0) result = result.filter(c => c.rating >= filters.minStars);
     if (filters.maxStars < 10) result = result.filter(c => c.rating <= filters.maxStars);
     if (filters.minDailyIncome > 0) result = result.filter(c => c.daily_income >= filters.minDailyIncome);
-    if (filters.maxDailyIncome !== null) result = result.filter(c => c.daily_income <= filters.maxDailyIncome!);
-    if (filters.minWeeklyIncome > 0) result = result.filter(c => c.weekly_income >= filters.minWeeklyIncome);
-    if (filters.maxWeeklyIncome !== null) result = result.filter(c => c.weekly_income <= filters.maxWeeklyIncome!);
-    if (filters.minDailyCustomers > 0) result = result.filter(c => c.daily_customers >= filters.minDailyCustomers);
-    if (filters.maxDailyCustomers !== null) result = result.filter(c => c.daily_customers <= filters.maxDailyCustomers!);
-    if (filters.minAge > 0) result = result.filter(c => c.days_old >= filters.minAge);
-    if (filters.maxAge !== null) result = result.filter(c => c.days_old <= filters.maxAge!);
+    if (filters.maxDailyIncome !== null) {
+      result = result.filter((c) => c.daily_income <= filters.maxDailyIncome!);
+    }
+    if (filters.minWeeklyIncome > 0) {
+      result = result.filter((c) => c.weekly_income >= filters.minWeeklyIncome);
+    }
+    if (filters.maxWeeklyIncome !== null) {
+      result = result.filter(
+        (c) => c.weekly_income <= filters.maxWeeklyIncome!,
+      );
+    }
+    if (filters.minDailyCustomers > 0) {
+      result = result.filter(
+        (c) => c.daily_customers >= filters.minDailyCustomers,
+      );
+    }
+    if (filters.maxDailyCustomers !== null) {
+      result = result.filter(
+        (c) => c.daily_customers <= filters.maxDailyCustomers!,
+      );
+    }
+    if (filters.minAge > 0) {
+      result = result.filter((c) => c.days_old >= filters.minAge);
+    }
+    if (filters.maxAge !== null) {
+      result = result.filter((c) => c.days_old <= filters.maxAge!);
+    }
 
     result.sort((a, b) => {
       const valA = a[sortField];
       const valB = b[sortField];
-      if (typeof valA === 'string' && typeof valB === 'string') return sortDirection === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
-      const numA = (typeof valA === 'number') ? valA : 0;
-      const numB = (typeof valB === 'number') ? valB : 0;
-      if (numA < numB) return sortDirection === 'asc' ? -1 : 1;
-      if (numA > numB) return sortDirection === 'asc' ? 1 : -1;
+      if (typeof valA === "string" && typeof valB === "string") {
+        return sortDirection === "asc"
+          ? valA.localeCompare(valB)
+          : valB.localeCompare(valA);
+      }
+      const numA = typeof valA === "number" ? valA : 0;
+      const numB = typeof valB === "number" ? valB : 0;
+      if (numA < numB) return sortDirection === "asc" ? -1 : 1;
+      if (numA > numB) return sortDirection === "asc" ? 1 : -1;
       return 0;
     });
 
@@ -473,17 +396,19 @@ const App: React.FC = () => {
   const displayData = useMemo(() => {
     if (!filters.name) return baseRankedData;
     const q = filters.name.toLowerCase();
-    return baseRankedData.filter(c => c.name.toLowerCase().includes(q));
+    return baseRankedData.filter((c) => c.name.toLowerCase().includes(q));
   }, [baseRankedData, filters.name]);
 
   const idToRankMap = useMemo(() => {
     const map = new Map<number, number>();
-    baseRankedData.forEach(c => { if ((c as any).display_rank) map.set(c.ID, (c as any).display_rank); });
+    baseRankedData.forEach((c) => {
+      if ((c as any).display_rank) map.set(c.ID, (c as any).display_rank);
+    });
     return map;
   }, [baseRankedData]);
 
   const markedData = useMemo(() => {
-    const result = companies.filter(c => markedIds.has(c.ID));
+    const result = companies.filter((c) => markedIds.has(c.ID));
     result.sort((a, b) => {
       const rankA = idToRankMap.get(a.ID) ?? 999999;
       const rankB = idToRankMap.get(b.ID) ?? 999999;
@@ -495,43 +420,81 @@ const App: React.FC = () => {
 
   const stats = useMemo(() => {
     if (displayData.length === 0) return null;
-    const youngest = [...displayData].sort((a,b) => a.days_old - b.days_old)[0];
-    const highestWeeklyRev = [...displayData].sort((a,b) => b.weekly_income - a.weekly_income)[0];
-    const highestDailyRev = [...displayData].sort((a,b) => b.daily_income - a.daily_income)[0];
-    const highestWeeklyCust = [...displayData].sort((a,b) => b.weekly_customers - a.weekly_customers)[0];
-    const highestDailyCust = [...displayData].sort((a,b) => b.daily_customers - a.daily_customers)[0];
-    const format = (n: number) => new Intl.NumberFormat('en-US', { notation: "compact", maximumFractionDigits: 1 }).format(n);
+    const youngest = [...displayData].sort((a, b) => a.days_old - b.days_old)[0];
+    const highestWeeklyRev = [...displayData].sort(
+      (a, b) => b.weekly_income - a.weekly_income,
+    )[0];
+    const highestDailyRev = [...displayData].sort(
+      (a, b) => b.daily_income - a.daily_income,
+    )[0];
+    const highestWeeklyCust = [...displayData].sort(
+      (a, b) => b.weekly_customers - a.weekly_customers,
+    )[0];
+    const highestDailyCust = [...displayData].sort(
+      (a, b) => b.daily_customers - a.daily_customers,
+    )[0];
+    const format = (n: number) =>
+      new Intl.NumberFormat("en-US", {
+        notation: "compact",
+        maximumFractionDigits: 1,
+      }).format(n);
 
     return [
-      { id: 'hwr', title: "High W. Rev", value: `$${format(highestWeeklyRev.weekly_income)}`, subtext: highestWeeklyRev.name, icon: DollarSign, colorClass: "text-green-500" },
-      { id: 'hdr', title: "High D. Rev", value: `$${format(highestDailyRev.daily_income)}`, subtext: highestDailyRev.name, icon: DollarSign, colorClass: "text-emerald-500" },
-      { id: 'hwc', title: "High W. Cust", value: `${format(highestWeeklyCust.weekly_customers)}`, subtext: highestWeeklyCust.name, icon: Users, colorClass: "text-purple-500" },
-      { id: 'hdc', title: "High D. Cust", value: `${format(highestDailyCust.daily_customers)}`, subtext: highestDailyCust.name, icon: Users, colorClass: "text-indigo-500" },
-      { id: 'yng', title: "Youngest", value: `${youngest.days_old}d`, subtext: youngest.name, icon: Calendar, colorClass: "text-blue-500" },
+      {
+        id: "hwr",
+        title: "High W. Rev",
+        value: `$${format(highestWeeklyRev.weekly_income)}`,
+        subtext: highestWeeklyRev.name,
+        icon: DollarSign,
+        colorClass: "text-green-500",
+      },
+      {
+        id: "hdr",
+        title: "High D. Rev",
+        value: `$${format(highestDailyRev.daily_income)}`,
+        subtext: highestDailyRev.name,
+        icon: DollarSign,
+        colorClass: "text-emerald-500",
+      },
+      {
+        id: "hwc",
+        title: "High W. Cust",
+        value: `${format(highestWeeklyCust.weekly_customers)}`,
+        subtext: highestWeeklyCust.name,
+        icon: Users,
+        colorClass: "text-purple-500",
+      },
+      {
+        id: "hdc",
+        title: "High D. Cust",
+        value: `${format(highestDailyCust.daily_customers)}`,
+        subtext: highestDailyCust.name,
+        icon: Users,
+        colorClass: "text-indigo-500",
+      },
+      {
+        id: "yng",
+        title: "Youngest",
+        value: `${youngest.days_old}d`,
+        subtext: youngest.name,
+        icon: Calendar,
+        colorClass: "text-blue-500",
+      },
     ];
   }, [displayData]);
-
-  const TableHeader = ({ field, label, tooltip, className = "" }: { field: SortField, label: string, tooltip?: string, className?: string }) => (
-    <div 
-      onClick={() => handleSort(field)}
-      className={`group cursor-pointer flex items-center gap-1 text-[10px] md:text-xs font-bold uppercase tracking-wider text-muted-foreground hover:text-primary transition-colors select-none ${className}`}
-      title={tooltip || `Sort by ${label}`}
-    >
-      {label}
-      {sortField === field ? (
-        sortDirection === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />
-      ) : (
-        <ArrowUpDown className="w-3 h-3 opacity-30 group-hover:opacity-100" />
-      )}
-    </div>
-  );
 
   return (
     <div className="h-screen bg-background flex flex-col font-sans overflow-hidden transition-colors duration-200">
       
       {/* Scroll-aware Wrapper for Header and Compact Bar */}
       <div className="flex-none z-30 flex flex-col">
-        <header className={`bg-card border-border z-30 shadow-sm transition-all duration-300 overflow-hidden ${hideInputs ? 'max-h-0 md:max-h-[500px] border-b-0 opacity-0 md:opacity-100' : 'max-h-[500px] border-b opacity-100'}`}>
+        <header
+          className={`bg-card border-border z-30 shadow-sm transition-all duration-300 overflow-hidden ${
+            hideInputs
+              ? "max-h-0 md:max-h-[500px] border-b-0 opacity-0 md:opacity-100"
+              : "max-h-[500px] border-b opacity-100"
+          }`}
+        >
           <div className="max-w-7xl mx-auto p-4">
             <div className="flex flex-col lg:flex-row gap-4 items-end lg:items-center justify-between">
               <div className="flex items-center justify-between w-full lg:w-auto">
@@ -540,26 +503,34 @@ const App: React.FC = () => {
                     <BarChart3 className="w-6 h-6" />
                   </div>
                   <div>
-                    <h1 className="text-xl font-bold tracking-tight text-primary">TornCorp<span className="text-muted-foreground font-light">Analyzer</span></h1>
+                    <h1 className="text-xl font-bold tracking-tight text-primary">
+                      TornCorp
+                      <span className="text-muted-foreground font-light">
+                        Analyzer
+                      </span>
+                    </h1>
                   </div>
                 </div>
-                <button onClick={() => setIsDark(!isDark)} className="lg:hidden p-2 rounded-full hover:bg-muted transition-colors text-foreground">
+                <button
+                  onClick={() => setIsDark(!isDark)}
+                  className="lg:hidden p-2 rounded-full hover:bg-muted transition-colors text-foreground"
+                >
                   {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
                 </button>
               </div>
 
               <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto items-center">
                 <div className="relative w-full sm:w-auto flex items-center">
-                   <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none">
-                      <Key className="w-4 h-4" />
-                   </div>
-                   <input 
-                      type="password"
-                      value={apiKey}
-                      onChange={handleApiKeyChange}
-                      placeholder="Enter Public API Key"
-                      className="w-full sm:w-40 pl-9 pr-3 py-2 border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-1 focus:ring-primary shadow-sm"
-                   />
+                  <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none">
+                    <Key className="w-4 h-4" />
+                  </div>
+                  <input
+                    type="password"
+                    value={apiKey}
+                    onChange={handleApiKeyChange}
+                    placeholder="Enter Public API Key"
+                    className="w-full sm:w-40 pl-9 pr-3 py-2 border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-1 focus:ring-primary shadow-sm"
+                  />
                 </div>
 
                 <div className="relative flex-grow sm:flex-grow-0 w-full sm:w-auto flex items-center gap-2">
@@ -569,26 +540,30 @@ const App: React.FC = () => {
                       onChange={(e) => setSelectedType(Number(e.target.value))}
                       className="w-full sm:w-56 pl-3 pr-8 py-2 border border-border bg-background text-foreground text-sm appearance-none focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer shadow-sm"
                     >
-                      {COMPANY_TYPES.map(t => (<option key={t.id} value={t.id}>{t.name}</option>))}
+                      {COMPANY_TYPES.map((t) => (
+                        <option key={t.id} value={t.id}>
+                          {t.name}
+                        </option>
+                      ))}
                     </select>
                     <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
                       <ArrowUpDown className="w-3 h-3 text-muted-foreground" />
                     </div>
                   </div>
-                  <button 
+                  <button
                     onClick={() => handleFetch()}
                     disabled={loading || !apiKey}
                     className="p-2 border border-border bg-background hover:bg-muted text-muted-foreground rounded transition-colors disabled:opacity-50"
                   >
                     <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
                   </button>
-              <button 
-                onClick={() => setIsDark(!isDark)}
-                className="hidden lg:flex p-2 rounded-full hover:bg-muted transition-colors text-foreground ml-2"
-                title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
-              >
-                {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-              </button>
+                  <button
+                    onClick={() => setIsDark(!isDark)}
+                    className="hidden lg:flex p-2 rounded-full hover:bg-muted transition-colors text-foreground ml-2"
+                    title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
+                  >
+                    {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+                  </button>
                 </div>
               </div>
             </div>
@@ -602,8 +577,11 @@ const App: React.FC = () => {
 
         {/* Mobile Compact Expansion Bar - Visible only on scroll up when inputs are hidden */}
         {showCompactBar && hideInputs && (
-          <div 
-            onClick={() => { setHideInputs(false); setShowCompactBar(false); }}
+          <div
+            onClick={() => {
+              setHideInputs(false);
+              setShowCompactBar(false);
+            }}
             className="lg:hidden bg-primary text-primary-foreground text-[10px] font-black uppercase tracking-[0.2em] h-8 flex items-center justify-center cursor-pointer shadow-lg animate-in slide-in-from-top duration-300 shrink-0"
           >
             <div className="flex items-center gap-2">
@@ -624,26 +602,31 @@ const App: React.FC = () => {
                   type="text"
                   placeholder="Filter by name..."
                   value={filters.name}
-                  onChange={(e) => setFilters(prev => ({ ...prev, name: e.target.value }))}
+                  onChange={(e) =>
+                    setFilters((prev) => ({ ...prev, name: e.target.value }))
+                  }
                   className="w-full pl-9 pr-3 py-2 border border-border bg-background text-foreground text-sm focus:outline-none focus:border-primary"
                 />
               </div>
               <div className="flex gap-2 w-full md:w-auto">
                 <button
-                    onClick={() => setShowFilters(!showFilters)}
-                    className={`flex-1 md:flex-none px-4 py-2 text-sm border border-border flex items-center justify-center gap-2 transition-colors ${showFilters ? 'bg-secondary' : 'bg-background hover:bg-muted'} text-foreground`}
+                  onClick={() => setShowFilters(!showFilters)}
+                  className={`flex-1 md:flex-none px-4 py-2 text-sm border border-border flex items-center justify-center gap-2 transition-colors ${
+                    showFilters ? "bg-secondary" : "bg-background hover:bg-muted"
+                  } text-foreground`}
                 >
-                  <Filter className="w-4 h-4" /> Filters {showFilters ? '▲' : '▼'}
+                  <Filter className="w-4 h-4" /> Filters{" "}
+                  {showFilters ? "▲" : "▼"}
                 </button>
                 <button
-                    onClick={resetFilters}
-                    className="flex-1 md:flex-none px-4 py-2 text-sm border border-border bg-background hover:bg-muted text-foreground flex items-center justify-center gap-2 transition-colors"
+                  onClick={resetFilters}
+                  className="flex-1 md:flex-none px-4 py-2 text-sm border border-border bg-background hover:bg-muted text-foreground flex items-center justify-center gap-2 transition-colors"
                 >
                   <RotateCcw className="w-4 h-4" /> Reset
                 </button>
                 <button
-                    onClick={() => setShowSortPopUp(true)}
-                    className="md:hidden p-2 border border-border bg-background hover:bg-muted text-foreground flex items-center justify-center transition-colors"
+                  onClick={() => setShowSortPopUp(true)}
+                  className="md:hidden p-2 border border-border bg-background hover:bg-muted text-foreground flex items-center justify-center transition-colors"
                 >
                   <Settings2 className="w-5 h-5" />
                 </button>
@@ -652,11 +635,68 @@ const App: React.FC = () => {
 
             {showFilters && (
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 pt-4 border-t border-border animate-in fade-in slide-in-from-top-2">
-                <FilterBlock label="Stars" minLimit={0} maxLimit={10} currentMin={filters.minStars} currentMax={filters.maxStars} onChangeMin={v => setFilters({...filters, minStars: v})} onChangeMax={v => setFilters({...filters, maxStars: v === null ? 10 : v})} />
-                <FilterBlock label="Daily Income" minLimit={0} maxLimit={getLimitValues.maxIncomeD} currentMin={filters.minDailyIncome} currentMax={filters.maxDailyIncome} step={1000} onChangeMin={v => setFilters({...filters, minDailyIncome: v})} onChangeMax={v => setFilters({...filters, maxDailyIncome: v})} />
-                <FilterBlock label="Weekly Income" minLimit={0} maxLimit={getLimitValues.maxIncomeW} currentMin={filters.minWeeklyIncome} currentMax={filters.maxWeeklyIncome} step={5000} onChangeMin={v => setFilters({...filters, minWeeklyIncome: v})} onChangeMax={v => setFilters({...filters, maxWeeklyIncome: v})} />
-                <FilterBlock label="Daily Customers" minLimit={0} maxLimit={getLimitValues.maxCust} currentMin={filters.minDailyCustomers} currentMax={filters.maxDailyCustomers} onChangeMin={v => setFilters({...filters, minDailyCustomers: v})} onChangeMax={v => setFilters({...filters, maxDailyCustomers: v})} />
-                <FilterBlock label="Age (Days)" minLimit={0} maxLimit={getLimitValues.maxAge} currentMin={filters.minAge} currentMax={filters.maxAge} step={10} onChangeMin={v => setFilters({...filters, minAge: v})} onChangeMax={v => setFilters({...filters, maxAge: v})} />
+                <FilterBlock
+                  label="Stars"
+                  minLimit={0}
+                  maxLimit={10}
+                  currentMin={filters.minStars}
+                  currentMax={filters.maxStars}
+                  onChangeMin={(v) => setFilters({ ...filters, minStars: v })}
+                  onChangeMax={(v) =>
+                    setFilters({ ...filters, maxStars: v === null ? 10 : v })
+                  }
+                />
+                <FilterBlock
+                  label="Daily Income"
+                  minLimit={0}
+                  maxLimit={getLimitValues.maxIncomeD}
+                  currentMin={filters.minDailyIncome}
+                  currentMax={filters.maxDailyIncome}
+                  step={1000}
+                  onChangeMin={(v) =>
+                    setFilters({ ...filters, minDailyIncome: v })
+                  }
+                  onChangeMax={(v) =>
+                    setFilters({ ...filters, maxDailyIncome: v })
+                  }
+                />
+                <FilterBlock
+                  label="Weekly Income"
+                  minLimit={0}
+                  maxLimit={getLimitValues.maxIncomeW}
+                  currentMin={filters.minWeeklyIncome}
+                  currentMax={filters.maxWeeklyIncome}
+                  step={5000}
+                  onChangeMin={(v) =>
+                    setFilters({ ...filters, minWeeklyIncome: v })
+                  }
+                  onChangeMax={(v) =>
+                    setFilters({ ...filters, maxWeeklyIncome: v })
+                  }
+                />
+                <FilterBlock
+                  label="Daily Customers"
+                  minLimit={0}
+                  maxLimit={getLimitValues.maxCust}
+                  currentMin={filters.minDailyCustomers}
+                  currentMax={filters.maxDailyCustomers}
+                  onChangeMin={(v) =>
+                    setFilters({ ...filters, minDailyCustomers: v })
+                  }
+                  onChangeMax={(v) =>
+                    setFilters({ ...filters, maxDailyCustomers: v })
+                  }
+                />
+                <FilterBlock
+                  label="Age (Days)"
+                  minLimit={0}
+                  maxLimit={getLimitValues.maxAge}
+                  currentMin={filters.minAge}
+                  currentMax={filters.maxAge}
+                  step={10}
+                  onChangeMin={(v) => setFilters({ ...filters, minAge: v })}
+                  onChangeMax={(v) => setFilters({ ...filters, maxAge: v })}
+                />
               </div>
             )}
             <div className="text-[10px] md:text-xs text-muted-foreground pt-1 uppercase font-bold tracking-widest opacity-60">Showing {displayData.length} of {companies.length} results</div>
@@ -665,24 +705,50 @@ const App: React.FC = () => {
           {stats && (
             <div className="flex flex-wrap gap-2 overflow-x-auto pb-2 scrollbar-hide">
               {stats.map((s) => (
-                <StatCard key={s.id} title={s.title} value={s.value} subtext={s.subtext} icon={s.icon} colorClass={s.colorClass} />
+                <StatCard
+                  key={s.id}
+                  title={s.title}
+                  value={s.value}
+                  subtext={s.subtext}
+                  icon={s.icon}
+                  colorClass={s.colorClass}
+                />
               ))}
             </div>
           )}
 
           {markedData.length > 0 && (
             <div className="bg-card border border-border shadow-sm flex flex-col mb-2 overflow-hidden">
-              <div className="p-3 border-b border-border bg-blue-500/10 flex justify-between items-center cursor-pointer select-none hover:bg-blue-500/20 transition-colors" onClick={() => setShowMarked(!showMarked)}>
+              <div
+                className="p-3 border-b border-border bg-blue-500/10 flex justify-between items-center cursor-pointer select-none hover:bg-blue-500/20 transition-colors"
+                onClick={() => setShowMarked(!showMarked)}
+              >
                 <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400">
-                   <Bookmark className="w-4 h-4 fill-current" />
-                   <h3 className="font-bold text-xs uppercase tracking-wider">Marked Companies</h3>
-                   <span className="text-[10px] bg-blue-500/20 px-2 py-0.5 rounded-full font-black">{markedData.length}</span>
+                  <Bookmark className="w-4 h-4 fill-current" />
+                  <h3 className="font-bold text-xs uppercase tracking-wider">
+                    Marked Companies
+                  </h3>
+                  <span className="text-[10px] bg-blue-500/20 px-2 py-0.5 rounded-full font-black">
+                    {markedData.length}
+                  </span>
                 </div>
-                {showMarked ? <ChevronUp className="w-4 h-4 text-blue-500" /> : <ChevronDown className="w-4 h-4 text-blue-500" />}
+                {showMarked ? (
+                  <ChevronUp className="w-4 h-4 text-blue-500" />
+                ) : (
+                  <ChevronDown className="w-4 h-4 text-blue-500" />
+                )}
               </div>
               {showMarked && (
                 <div className="flex flex-col divide-y divide-border">
-                  {markedData.map((company) => (<CompanyRow key={company.ID} company={company} sortRank={idToRankMap.get(company.ID) ?? '-'} isMarked={true} onToggleMark={handleToggleMark} />))}
+                  {markedData.map((company) => (
+                    <CompanyRow
+                      key={company.ID}
+                      company={company}
+                      sortRank={idToRankMap.get(company.ID) ?? "-"}
+                      isMarked
+                      onToggleMark={handleToggleMark}
+                    />
+                  ))}
                 </div>
               )}
             </div>
@@ -692,32 +758,103 @@ const App: React.FC = () => {
             <div className="sticky top-0 z-20 hidden md:grid grid-cols-[40px_60px_60px_3fr_180px_1fr_1fr_1fr_0.8fr_0.8fr_0.8fr] gap-4 p-3 border-b border-border bg-muted/50 backdrop-blur-sm shadow-sm">
               <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground text-center">Mark</div>
               <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground">#</div>
-              <TableHeader field="torn_rank" label="TR" className="justify-center" />
+              <TableHeader
+                field="torn_rank"
+                label="TR"
+                className="justify-center"
+                sortField={sortField}
+                sortDirection={sortDirection}
+                onSort={handleSort}
+              />
               <TableHeader field="name" label="Company" />
-              <TableHeader field="rating" label="Rating" />
-              <TableHeader field="daily_income" label="Daily $" />
-              <TableHeader field="weekly_income" label="Weekly $" />
-              <TableHeader field="performance" label="Perf %" />
-              <TableHeader field="daily_customers" label="Cust." />
-              <TableHeader field="days_old" label="Age" />
-              <TableHeader field="employees" label="Staff" />
+              <TableHeader
+                field="rating"
+                label="Rating"
+                sortField={sortField}
+                sortDirection={sortDirection}
+                onSort={handleSort}
+              />
+              <TableHeader
+                field="daily_income"
+                label="Daily $"
+                sortField={sortField}
+                sortDirection={sortDirection}
+                onSort={handleSort}
+              />
+              <TableHeader
+                field="weekly_income"
+                label="Weekly $"
+                sortField={sortField}
+                sortDirection={sortDirection}
+                onSort={handleSort}
+              />
+              <TableHeader
+                field="performance"
+                label="Perf %"
+                sortField={sortField}
+                sortDirection={sortDirection}
+                onSort={handleSort}
+              />
+              <TableHeader
+                field="daily_customers"
+                label="Cust."
+                sortField={sortField}
+                sortDirection={sortDirection}
+                onSort={handleSort}
+              />
+              <TableHeader
+                field="days_old"
+                label="Age"
+                sortField={sortField}
+                sortDirection={sortDirection}
+                onSort={handleSort}
+              />
+              <TableHeader
+                field="employees"
+                label="Staff"
+                sortField={sortField}
+                sortDirection={sortDirection}
+                onSort={handleSort}
+              />
             </div>
 
             {loading ? (
-                <div className="flex flex-col items-center justify-center flex-grow py-20">
-                  <Loader2 className="w-10 h-10 animate-spin text-primary mb-4" />
-                  <p className="text-muted-foreground text-sm font-medium">Fetching live industry data...</p>
-                </div>
+              <div className="flex flex-col items-center justify-center flex-grow py-20">
+                <Loader2 className="w-10 h-10 animate-spin text-primary mb-4" />
+                <p className="text-muted-foreground text-sm font-medium">
+                  Fetching live industry data...
+                </p>
+              </div>
             ) : displayData.length > 0 ? (
               <div className="flex flex-col divide-y divide-border">
-                {displayData.map((company) => (<CompanyRow key={company.ID} company={company} sortRank={(company as any).display_rank} isMarked={markedIds.has(company.ID)} onToggleMark={handleToggleMark} />))}
+                {displayData.map((company) => (
+                  <CompanyRow
+                    key={company.ID}
+                    company={company}
+                    sortRank={(company as any).display_rank}
+                    isMarked={markedIds.has(company.ID)}
+                    onToggleMark={handleToggleMark}
+                  />
+                ))}
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center flex-grow py-20 text-center">
-                {!loading && companies.length === 0 ? (<p className="text-muted-foreground text-sm">Enter your Public API key to view {COMPANY_TYPES.find(t => t.id === selectedType)?.name}.</p>) : (
+                {!loading && companies.length === 0 ? (
+                  <p className="text-muted-foreground text-sm">
+                    Enter your Public API key to view{" "}
+                    {COMPANY_TYPES.find((t) => t.id === selectedType)?.name}.
+                  </p>
+                ) : (
                   <>
-                    <p className="text-muted-foreground text-sm">No matches for current filters.</p>
-                    <button onClick={resetFilters} className="mt-2 text-primary hover:underline text-xs font-bold uppercase tracking-widest">Clear all filters</button>
+                    <p className="text-muted-foreground text-sm">
+                      No matches for current filters.
+                    </p>
+                    <button
+                      onClick={resetFilters}
+                      className="mt-2 text-primary hover:underline text-xs font-bold uppercase tracking-widest"
+                    >
+                      Clear all filters
+                    </button>
                   </>
                 )}
               </div>
@@ -725,18 +862,40 @@ const App: React.FC = () => {
           </div>
           
           <footer className="mt-8 mb-8 border-t border-border pt-6 flex flex-col items-center justify-center gap-4 text-xs text-muted-foreground">
-             <div className="flex flex-col items-center gap-1">
-                <div className="flex items-center gap-1">
-                  <span>© 2025</span>
-                  <a href="https://www.torn.com/profiles.php?XID=3165209" target="_blank" rel="noopener noreferrer" className="font-semibold text-primary hover:underline">PixelGhost</a>
-                </div>
-                {viewStats && (
-                  <div className="flex items-center gap-4 mt-2 px-3 py-1 bg-muted rounded-full text-[10px] font-bold uppercase tracking-widest text-muted-foreground/80">
-                    <div className="flex items-center gap-1.5"><Eye className="w-3 h-3" /><span>Today: <span className="text-foreground">{viewStats.todayViews}</span></span></div>
-                    <div className="flex items-center gap-1.5 border-l border-border pl-4"><span>Total: <span className="text-foreground">{viewStats.totalViews}</span></span></div>
+            <div className="flex flex-col items-center gap-1">
+              <div className="flex items-center gap-1">
+                <span>© 2025</span>
+                <a
+                  href="https://www.torn.com/profiles.php?XID=3165209"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-semibold text-primary hover:underline"
+                >
+                  PixelGhost
+                </a>
+              </div>
+              {viewStats && (
+                <div className="flex items-center gap-4 mt-2 px-3 py-1 bg-muted rounded-full text-[10px] font-bold uppercase tracking-widest text-muted-foreground/80">
+                  <div className="flex items-center gap-1.5">
+                    <Eye className="w-3 h-3" />
+                    <span>
+                      Today:{" "}
+                      <span className="text-foreground">
+                        {viewStats.todayViews}
+                      </span>
+                    </span>
                   </div>
-                )}
-             </div>
+                  <div className="flex items-center gap-1.5 border-l border-border pl-4">
+                    <span>
+                      Total:{" "}
+                      <span className="text-foreground">
+                        {viewStats.totalViews}
+                      </span>
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
           </footer>
         </main>
       </div>
@@ -746,19 +905,63 @@ const App: React.FC = () => {
           <div className="bg-card border-t border-border w-full max-w-md p-6 rounded-t-2xl shadow-2xl flex flex-col gap-6 animate-in slide-in-from-bottom-10">
             <div className="flex justify-between items-center">
               <h3 className="font-black text-lg uppercase tracking-widest text-primary">Sort Companies</h3>
-              <button onClick={() => setShowSortPopUp(false)} className="p-2 hover:bg-muted rounded-full transition-colors"><X className="w-6 h-6" /></button>
+              <button
+                onClick={() => setShowSortPopUp(false)}
+                className="p-2 hover:bg-muted rounded-full transition-colors"
+              >
+                <X className="w-6 h-6" />
+              </button>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              {['name', 'rating', 'daily_income', 'weekly_income', 'performance', 'daily_customers', 'days_old', 'employees', 'torn_rank'].map((f) => (
-                <button key={f} onClick={() => { handleSort(f as SortField); setShowSortPopUp(false); }} className={`px-4 py-3 text-sm font-bold border flex items-center justify-between transition-colors ${sortField === f ? 'bg-primary text-primary-foreground border-primary' : 'bg-background text-foreground border-border'}`}>
-                  {f.replace('_', ' ')}
-                  {sortField === f && (sortDirection === 'asc' ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />)}
+              {[
+                "name",
+                "rating",
+                "daily_income",
+                "weekly_income",
+                "performance",
+                "daily_customers",
+                "days_old",
+                "employees",
+                "torn_rank",
+              ].map((f) => (
+                <button
+                  key={f}
+                  onClick={() => {
+                    handleSort(f as SortField);
+                    setShowSortPopUp(false);
+                  }}
+                  className={`px-4 py-3 text-sm font-bold border flex items-center justify-between transition-colors ${
+                    sortField === f
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "bg-background text-foreground border-border"
+                  }`}
+                >
+                  {f.replace("_", " ")}
+                  {sortField === f &&
+                    (sortDirection === "asc" ? (
+                      <ArrowUp className="w-4 h-4" />
+                    ) : (
+                      <ArrowDown className="w-4 h-4" />
+                    ))}
                 </button>
               ))}
             </div>
             <div className="flex gap-3 mt-2">
-               <button onClick={() => { setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc'); setShowSortPopUp(false); }} className="flex-1 py-3 bg-secondary text-secondary-foreground font-black uppercase text-xs tracking-widest">Reverse</button>
-               <button onClick={() => setShowSortPopUp(false)} className="flex-1 py-3 bg-primary text-primary-foreground font-black uppercase text-xs tracking-widest">Apply</button>
+              <button
+                onClick={() => {
+                  setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
+                  setShowSortPopUp(false);
+                }}
+                className="flex-1 py-3 bg-secondary text-secondary-foreground font-black uppercase text-xs tracking-widest"
+              >
+                Reverse
+              </button>
+              <button
+                onClick={() => setShowSortPopUp(false)}
+                className="flex-1 py-3 bg-primary text-primary-foreground font-black uppercase text-xs tracking-widest"
+              >
+                Apply
+              </button>
             </div>
           </div>
         </div>
