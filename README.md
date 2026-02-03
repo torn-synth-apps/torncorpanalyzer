@@ -1,20 +1,22 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# TornCorpAnalyzer
 
-# Run and deploy your AI Studio app
+TornCorpAnalyzer is a web application that allows users to analyze and compare the performance of different companies in the [Torn.com](https://www.torn.com/).
 
-This contains everything you need to run your app locally.
+## Features
 
-View your app in AI Studio: https://ai.studio/apps/drive/1hyd1a7hAzzfpBMpt--c15HrBCiQKYDAV
+- Filter companies by name, rating, daily income, weekly income, performance, customers, age, and staffing.
+- Sort companies by name, rating, daily income, weekly income, performance, customers, age, and staffing.
+- Mark companies for further analysis.
+- View live Torn.com industry data.
 
-## Run Locally
+## Usage
 
-**Prerequisites:**  Node.js
+To use the application, simply enter your [Torn.com](https://www.torn.com/) Public API key in the input field and click the "Fetch" button. The application will then fetch the latest data from Torn.com and display the results.
 
+## Contributing
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+Contributions are welcome! If you have any suggestions or improvements, please open an issue or submit a pull request.
+
+## AI Usage
+
+This application is carefully made using Google AI Studio.
