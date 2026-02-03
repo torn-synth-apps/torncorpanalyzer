@@ -82,7 +82,7 @@ export const CompanyRow: React.FC<CompanyRowProps> = ({
 
         <div className="flex-none md:flex md:flex-col md:items-center">
           <span className="text-xl md:text-sm font-black text-muted-foreground/40 md:text-foreground">
-            #{sortRank}
+            {sortRank}
           </span>
         </div>
 
@@ -114,15 +114,15 @@ export const CompanyRow: React.FC<CompanyRowProps> = ({
             {isMarked && company.marked_ranks && (
               <div className="mt-1 flex flex-wrap gap-2 text-[10px] text-blue-600 dark:text-blue-400 font-medium">
                 <span className="bg-blue-500/10 px-1 rounded">
-                  Age: #{company.marked_ranks.rank_age}/
+                  Age: {company.marked_ranks.rank_age}/
                   {company.marked_ranks.total_in_group}
                 </span>
                 <span className="bg-blue-500/10 px-1 rounded">
-                  Rev: #{company.marked_ranks.rank_revenue}/
+                  Rev: {company.marked_ranks.rank_revenue}/
                   {company.marked_ranks.total_in_group}
                 </span>
                 <span className="bg-blue-500/10 px-1 rounded">
-                  Cust: #{company.marked_ranks.rank_customers}/
+                  Cust: {company.marked_ranks.rank_customers}/
                   {company.marked_ranks.total_in_group}
                 </span>
               </div>
@@ -147,13 +147,13 @@ export const CompanyRow: React.FC<CompanyRowProps> = ({
       {isMarked && company.marked_ranks && (
         <div className="flex md:hidden flex-wrap gap-2 text-[9px] text-blue-600 dark:text-blue-400 font-bold uppercase tracking-wider mb-1 mt-1">
           <span className="bg-blue-500/10 px-1.5 py-0.5 rounded">
-            Age #{company.marked_ranks.rank_age}
+            Age {company.marked_ranks.rank_age}
           </span>
           <span className="bg-blue-500/10 px-1.5 py-0.5 rounded">
-            Rev #{company.marked_ranks.rank_revenue}
+            Rev {company.marked_ranks.rank_revenue}
           </span>
           <span className="bg-blue-500/10 px-1.5 py-0.5 rounded">
-            Cust #{company.marked_ranks.rank_customers}
+            Cust {company.marked_ranks.rank_customers}
           </span>
         </div>
       )}
