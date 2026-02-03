@@ -443,12 +443,8 @@ const App: React.FC = () => {
     }
   };
 
-  const displayData = useMemo(() => {
+  const baseRankedData = useMemo(() => {
     let result = [...companies];
-    if (filters.name) {
-      const q = filters.name.toLowerCase();
-      result = result.filter(c => c.name.toLowerCase().includes(q));
-    }
     if (filters.minStars > 0) result = result.filter(c => c.rating >= filters.minStars);
     if (filters.maxStars < 10) result = result.filter(c => c.rating <= filters.maxStars);
     if (filters.minDailyIncome > 0) result = result.filter(c => c.daily_income >= filters.minDailyIncome);
@@ -474,11 +470,17 @@ const App: React.FC = () => {
     return result.map((c, idx) => ({ ...c, display_rank: idx + 1 }));
   }, [companies, filters, sortField, sortDirection]);
 
+  const displayData = useMemo(() => {
+    if (!filters.name) return baseRankedData;
+    const q = filters.name.toLowerCase();
+    return baseRankedData.filter(c => c.name.toLowerCase().includes(q));
+  }, [baseRankedData, filters.name]);
+
   const idToRankMap = useMemo(() => {
     const map = new Map<number, number>();
-    displayData.forEach(c => { if ((c as any).display_rank) map.set(c.ID, (c as any).display_rank); });
+    baseRankedData.forEach(c => { if ((c as any).display_rank) map.set(c.ID, (c as any).display_rank); });
     return map;
-  }, [displayData]);
+  }, [baseRankedData]);
 
   const markedData = useMemo(() => {
     const result = companies.filter(c => markedIds.has(c.ID));
