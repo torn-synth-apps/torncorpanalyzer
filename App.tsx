@@ -350,7 +350,7 @@ const App: React.FC = () => {
 
   // --- Handlers ---
 
-  const handleFetch = useCallback(async () => {
+  const handleFetch = useCallback(async (forceRefresh = false) => {
     if (!tosAccepted) {
       if (apiKey) {
         setShowTosPrompt(true);
@@ -361,7 +361,9 @@ const App: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const rawData = await fetchCompanies(selectedType, apiKey);
+      const rawData = await fetchCompanies(selectedType, apiKey, {
+        forceRefresh,
+      });
       if (rawData.length === 0) {
         setError("No companies found for this type.");
         setCompanies([]);
@@ -375,6 +377,8 @@ const App: React.FC = () => {
       setLoading(false);
     }
   }, [selectedType, apiKey, tosAccepted]);
+
+  const handleRefresh = () => handleFetch(true);
 
   useEffect(() => {
     if (apiKey) handleFetch();
@@ -640,7 +644,7 @@ const App: React.FC = () => {
                     </div>
                   </div>
                   <button
-                    onClick={() => handleFetch()}
+                    onClick={handleRefresh}
                     disabled={loading || !apiKey || !tosAccepted}
                     className="p-2 border border-border bg-background hover:bg-muted text-muted-foreground rounded transition-colors disabled:opacity-50"
                   >

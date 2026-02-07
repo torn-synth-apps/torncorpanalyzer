@@ -51,14 +51,33 @@ const setCache = (typeId: number, companies: Company[]) => {
   }
 };
 
-export const fetchCompanies = async (typeId: number, apiKey: string): Promise<Company[]> => {
+export const purgeCompaniesCache = (typeId: number): void => {
+  try {
+    const key = `${CACHE_KEY_PREFIX}${typeId}`;
+    localStorage.removeItem(key);
+  } catch (e) {
+    console.error("Error clearing cache", e);
+  }
+};
+
+export const fetchCompanies = async (
+  typeId: number,
+  apiKey: string,
+  options: { forceRefresh?: boolean } = {},
+): Promise<Company[]> => {
   if (!apiKey) throw new Error("Please enter a valid Public Torn API Key.");
 
-  // Check cache first
-  const cached = getCache(typeId);
-  if (cached) {
-    console.log(`Returning cached data for type ${typeId}`);
-    return cached.companies;
+  const { forceRefresh = false } = options;
+
+  if (forceRefresh) {
+    purgeCompaniesCache(typeId);
+  } else {
+    // Check cache first
+    const cached = getCache(typeId);
+    if (cached) {
+      console.log(`Returning cached data for type ${typeId}`);
+      return cached.companies;
+    }
   }
 
   // Fetch from API directly (Client-side)
