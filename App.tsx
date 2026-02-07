@@ -168,6 +168,13 @@ const App: React.FC = () => {
     localStorage.setItem("torn_theme", isDark ? "dark" : "light");
   }, [isDark]);
 
+  useEffect(() => {
+    if (!tosAccepted) {
+      setShowTosPrompt(true);
+      setTosLinkVisited(false);
+    }
+  }, [tosAccepted]);
+
   // --- Persistence Effects ---
   useEffect(() => {
     localStorage.setItem("torn_filters", JSON.stringify(filters));
