@@ -77,6 +77,12 @@ const App: React.FC = () => {
   const [apiKey, setApiKey] = useState(
     () => localStorage.getItem("torn_api_key") || "",
   );
+  const [pendingApiKey, setPendingApiKey] = useState("");
+  const [tosAccepted, setTosAccepted] = useState(
+    () => localStorage.getItem("torn_tos_accepted") === "true",
+  );
+  const [showTosPrompt, setShowTosPrompt] = useState(false);
+  const [tosLinkVisited, setTosLinkVisited] = useState(false);
   const [viewStats, setViewStats] = useState<ViewStats | null>(null);
   const hasTrackedViewRef = useRef(false);
 
@@ -219,8 +225,36 @@ const App: React.FC = () => {
 
   const handleApiKeyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
+    if (!tosAccepted) {
+      setApiKey(val);
+      setPendingApiKey(val);
+      if (val) {
+        setShowTosPrompt(true);
+        setTosLinkVisited(false);
+      }
+      return;
+    }
     setApiKey(val);
     localStorage.setItem("torn_api_key", val);
+  };
+
+  const handleAcceptTos = () => {
+    const keyToStore = pendingApiKey || apiKey;
+    setTosAccepted(true);
+    localStorage.setItem("torn_tos_accepted", "true");
+    if (keyToStore) {
+      setApiKey(keyToStore);
+      localStorage.setItem("torn_api_key", keyToStore);
+    }
+    setPendingApiKey("");
+    setShowTosPrompt(false);
+  };
+
+  const handleCancelTos = () => {
+    setShowTosPrompt(false);
+    setPendingApiKey("");
+    setApiKey("");
+    localStorage.removeItem("torn_api_key");
   };
 
   const resetFilters = () => {
@@ -310,6 +344,12 @@ const App: React.FC = () => {
   // --- Handlers ---
 
   const handleFetch = useCallback(async () => {
+    if (!tosAccepted) {
+      if (apiKey) {
+        setShowTosPrompt(true);
+      }
+      return;
+    }
     if (!apiKey) return;
     setLoading(true);
     setError(null);
@@ -327,7 +367,7 @@ const App: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [selectedType, apiKey]);
+  }, [selectedType, apiKey, tosAccepted]);
 
   useEffect(() => {
     if (apiKey) handleFetch();
@@ -485,6 +525,48 @@ const App: React.FC = () => {
 
   return (
     <div className="h-screen bg-background flex flex-col font-sans overflow-hidden transition-colors duration-200">
+      {showTosPrompt && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="bg-card border border-border shadow-lg max-w-lg w-full p-6 space-y-4">
+            <div className="space-y-2">
+              <h2 className="text-lg font-semibold text-foreground">
+                Review TornCorp Analyzer Terms of Service
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                Please review the Terms of Service before adding your API key.
+                You must open the forum link to enable acceptance.
+              </p>
+            </div>
+            <a
+              href="https://www.torn.com/forums.php#/p=threads&f=67&t=16535783&b=0&a=0&start=0&to=26939182"
+              target="_blank"
+              rel="noreferrer"
+              onClick={() => setTosLinkVisited(true)}
+              className="inline-flex items-center gap-2 text-primary underline underline-offset-4"
+            >
+              View Terms of Service
+              <Eye className="w-4 h-4" />
+            </a>
+            <div className="flex flex-col sm:flex-row gap-2 sm:justify-end">
+              <button
+                type="button"
+                onClick={handleCancelTos}
+                className="px-4 py-2 text-sm border border-border bg-background hover:bg-muted text-foreground transition-colors"
+              >
+                Not now
+              </button>
+              <button
+                type="button"
+                onClick={handleAcceptTos}
+                disabled={!tosLinkVisited}
+                className="px-4 py-2 text-sm bg-primary text-primary-foreground disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                Accept Terms
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       
       {/* Scroll-aware Wrapper for Header and Compact Bar */}
       <div className="flex-none z-30 flex flex-col">
@@ -552,7 +634,7 @@ const App: React.FC = () => {
                   </div>
                   <button
                     onClick={() => handleFetch()}
-                    disabled={loading || !apiKey}
+                    disabled={loading || !apiKey || !tosAccepted}
                     className="p-2 border border-border bg-background hover:bg-muted text-muted-foreground rounded transition-colors disabled:opacity-50"
                   >
                     <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
