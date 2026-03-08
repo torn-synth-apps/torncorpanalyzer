@@ -22,3 +22,10 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# AI Agent
+.agents
+
+# Firebase
+.firebase
+

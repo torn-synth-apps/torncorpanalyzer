@@ -6,6 +6,7 @@ import { CompanyRow } from "./components/CompanyCard";
 import FilterBlock from "./components/filters/FilterBlock";
 import StatCard from "./components/StatCard";
 import TableHeader from "./components/TableHeader";
+import { MigrationNotice } from "./components/MigrationNotice";
 import {
   AlertCircle,
   ArrowDown,
@@ -536,6 +537,7 @@ const App: React.FC = () => {
 
   return (
     <div className="h-screen bg-background flex flex-col font-sans overflow-hidden transition-colors duration-200">
+      <MigrationNotice />
       {showTosPrompt && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
           <div className="bg-card border border-border shadow-lg max-w-lg w-full p-6 space-y-4">
@@ -578,15 +580,13 @@ const App: React.FC = () => {
           </div>
         </div>
       )}
-      
       {/* Scroll-aware Wrapper for Header and Compact Bar */}
       <div className="flex-none z-30 flex flex-col">
         <header
-          className={`bg-card border-border z-30 shadow-sm transition-all duration-300 overflow-hidden ${
-            hideInputs
-              ? "max-h-0 md:max-h-[500px] border-b-0 opacity-0 md:opacity-100"
-              : "max-h-[500px] border-b opacity-100"
-          }`}
+          className={`bg-card border-border z-30 shadow-sm transition-all duration-300 overflow-hidden ${hideInputs
+            ? "max-h-0 md:max-h-[500px] border-b-0 opacity-0 md:opacity-100"
+            : "max-h-[500px] border-b opacity-100"
+            }`}
         >
           <div className="max-w-7xl mx-auto p-4">
             <div className="flex flex-col lg:flex-row gap-4 items-end lg:items-center justify-between">
@@ -704,9 +704,8 @@ const App: React.FC = () => {
               <div className="flex gap-2 w-full md:w-auto">
                 <button
                   onClick={() => setShowFilters(!showFilters)}
-                  className={`flex-1 md:flex-none px-4 py-2 text-sm border border-border flex items-center justify-center gap-2 transition-colors ${
-                    showFilters ? "bg-secondary" : "bg-background hover:bg-muted"
-                  } text-foreground`}
+                  className={`flex-1 md:flex-none px-4 py-2 text-sm border border-border flex items-center justify-center gap-2 transition-colors ${showFilters ? "bg-secondary" : "bg-background hover:bg-muted"
+                    } text-foreground`}
                 >
                   <Filter className="w-4 h-4" /> Filters{" "}
                   {showFilters ? "▲" : "▼"}
@@ -953,7 +952,7 @@ const App: React.FC = () => {
               </div>
             )}
           </div>
-          
+
           <footer className="mt-8 mb-8 border-t border-border pt-6 flex flex-col items-center justify-center gap-4 text-xs text-muted-foreground">
             <div className="flex flex-col items-center gap-1">
               <div className="flex items-center gap-1">
@@ -1023,11 +1022,10 @@ const App: React.FC = () => {
                     handleSort(f as SortField);
                     setShowSortPopUp(false);
                   }}
-                  className={`px-4 py-3 text-sm font-bold border flex items-center justify-between transition-colors ${
-                    sortField === f
-                      ? "bg-primary text-primary-foreground border-primary"
-                      : "bg-background text-foreground border-border"
-                  }`}
+                  className={`px-4 py-3 text-sm font-bold border flex items-center justify-between transition-colors ${sortField === f
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-background text-foreground border-border"
+                    }`}
                 >
                   {f.replace("_", " ")}
                   {sortField === f &&
